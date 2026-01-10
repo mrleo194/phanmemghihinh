@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="title" content="Phần Mềm Ghi Hình Đóng Hàng - Tối Ưu Quy Trình Đóng Gói">
+    <meta name="description" content="Phần mềm ghi hình đóng hàng tự động bằng mã vận đơn. Giảm thời gian, tăng hiệu suất, bảo vệ shop khỏi khiếu nại. Dễ sử dụng, giá cả hợp lý.">
+    <meta name="keywords" content="phần mềm ghi hình đóng hàng, ghi hình mã vận đơn, bảo vệ shop, phần mềm livestream bán hàng">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📦%3C/text%3E%3C/svg%3E">
+    <title>Phần Mềm Ghi Hình Đóng Hàng - Tối Ưu Quy Trình</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-bg: #060D10;
+            --color-primary: #21A691;
+            --color-accent: #87DF2C;
+            --color-dark: #27403E;
+            --color-text: #B4B4B2;
+            --color-white: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--color-white);
+        }
+        
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.05;
+            background: 
+                radial-gradient(circle at 20% 50%, var(--color-primary) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, var(--color-accent) 0%, transparent 50%);
+        }
+        
+        /* Glowing effect */
+        .glow-text {
+            text-shadow: 0 0 20px rgba(33, 166, 145, 0.3);
+        }
+        
+        .glow-box {
+            box-shadow: 0 0 30px rgba(33, 166, 145, 0.2);
+        }
+        
+        /* Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary), #1a8574);
+            color: var(--color-white);
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(33, 166, 145, 0.4);
+            border-color: var(--color-accent);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-white);
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            border: 2px solid var(--color-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-primary);
+            transform: translateY(-2px);
+        }
+        
+        /* Feature Cards */
+        .feature-card {
+            background: linear-gradient(135deg, rgba(33, 166, 145, 0.05), rgba(39, 64, 62, 0.05));
+            border: 1px solid rgba(33, 166, 145, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--color-primary);
+            box-shadow: 0 20px 40px rgba(33, 166, 145, 0.15);
+        }
+        
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        /* Step Cards */
+        .step-card {
+            background: rgba(39, 64, 62, 0.3);
+            border: 2px solid var(--color-dark);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .step-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+        }
+        
+        .step-number {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: 20px;
+        }
+        
+        /* FAQ Accordion */
+        .faq-item {
+            background: rgba(39, 64, 62, 0.2);
+            border: 1px solid rgba(33, 166, 145, 0.2);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-question {
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--color-white);
+        }
+        
+        .faq-question:hover {
+            background: rgba(33, 166, 145, 0.1);
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 24px;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 0 24px 24px 24px;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-icon {
+            transition: transform 0.3s ease;
+            font-size: 24px;
+            color: var(--color-accent);
+        }
+        
+        /* Decorative Elements */
+        .decorator {
+            position: absolute;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        .float {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Pricing Card */
+        .pricing-card {
+            background: linear-gradient(135deg, rgba(33, 166, 145, 0.1), rgba(135, 223, 44, 0.05));
+            border: 2px solid var(--color-primary);
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(135, 223, 44, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .price {
+            font-size: 64px;
+            font-weight: 700;
+            color: var(--color-accent);
+            line-height: 1;
+        }
+        
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(6, 13, 16, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(33, 166, 145, 0.2);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .btn-primary, .btn-secondary {
+                padding: 12px 32px;
+                font-size: 16px;
+            }
+            
+            .price {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center gap-3">
+                    <span class="text-4xl">📦</span>
+                    <span class="text-xl font-bold text-white">PackRecord Pro</span>
+                </div>
+                <a href="#download" class="btn-primary" style="padding: 12px 32px; font-size: 16px;">
+                    Tải Ngay
+                    <span>→</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-4xl mx-auto fade-in-up">
+                <div class="inline-block mb-6">
+                    <span class="px-4 py-2 bg-gradient-to-r from-teal-500/20 to-lime-500/20 border border-teal-500/30 rounded-full text-sm font-semibold text-teal-400">
+                        ✨ Giải pháp ghi hình đóng hàng thông minh
+                    </span>
+                </div>
+                
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 glow-text leading-tight">
+                    Ghi Hình Đóng Hàng<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-lime-400">
+                        Tự Động & Chuyên Nghiệp
+                    </span>
+                </h1>
+                
+                <p class="text-xl sm:text-2xl mb-12 text-gray-300 leading-relaxed">
+                    Phần mềm ghi hình đóng hàng bằng mã vận đơn. Bảo vệ shop khỏi khiếu nại, tăng độ tin cậy, tối ưu quy trình đóng gói chỉ trong vài phút.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="#download" class="btn-primary">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Tải Phần Mềm Miễn Phí
+                    </a>
+                    <a href="#huong-dan" class="btn-secondary">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Xem Hướng Dẫn
+                    </a>
+                </div>
+                
+                <div class="mt-16 flex flex-wrap justify-center gap-8 text-center">
+                    <div>
+                        <div class="text-4xl font-bold text-lime-400">1000+</div>
+                        <div class="text-gray-400 mt-2">Shop đang sử dụng</div>
+                    </div>
+                    <div class="hidden sm:block w-px bg-gray-700"></div>
+                    <div>
+                        <div class="text-4xl font-bold text-teal-400">99.9%</div>
+                        <div class="text-gray-400 mt-2">Độ chính xác</div>
+                    </div>
+                    <div class="hidden sm:block w-px bg-gray-700"></div>
+                    <div>
+                        <div class="text-4xl font-bold text-lime-400">5 phút</div>
+                        <div class="text-gray-400 mt-2">Cài đặt & sử dụng</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Decorator -->
+        <svg class="decorator" style="top: 10%; right: 5%; width: 200px;" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="80" stroke="url(#grad1)" stroke-width="2"/>
+            <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#21A691;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#87DF2C;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Tính Năng Nổi Bật</h2>
+                <p class="text-xl text-gray-400">Giải pháp toàn diện cho việc ghi hình đóng hàng</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🎥</div>
+                    <h3 class="text-2xl font-bold mb-3">Tự Động Ghi Hình</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Phần mềm tự động nhận diện mã vận đơn và bắt đầu ghi hình. Không cần thao tác thủ công, tiết kiệm thời gian tối đa.
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3 class="text-2xl font-bold mb-3">Nhận Diện Thông Minh</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        AI nhận diện mã vạch, mã QR, và mã vận đơn với độ chính xác cao. Hỗ trợ đa dạng định dạng mã từ các đơn vị vận chuyển.
+                    </p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3 class="text-2xl font-bold mb-3">Lưu Trữ Tự Động</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Video được lưu trữ theo mã đơn hàng, dễ dàng tìm kiếm và quản lý. Hỗ trợ đa dạng định dạng video chất lượng cao.
+                    </p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="text-2xl font-bold mb-3">Bảo Vệ Shop</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Bằng chứng rõ ràng về quá trình đóng gói giúp shop tránh khiếu nại, tranh chấp với khách hàng một cách hiệu quả.
+                    </p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="text-2xl font-bold mb-3">Hiệu Suất Cao</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Ghi hình mượt mà, không lag. Tối ưu hóa để chạy ổn định trên nhiều cấu hình máy tính khác nhau.
+                    </p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🎛️</div>
+                    <h3 class="text-2xl font-bold mb-3">Dễ Tùy Chỉnh</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Cài đặt linh hoạt: độ phân giải, chất lượng video, vị trí lưu file, thời gian ghi. Phù hợp với mọi nhu cầu.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Benefits Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-teal-900/10">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Lợi Ích Vượt Trội</h2>
+                <p class="text-xl text-gray-400">Tại sao nên chọn phần mềm của chúng tôi?</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-8">
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Tiết Kiệm Thời Gian</h3>
+                            <p class="text-gray-400">Giảm 70% thời gian so với ghi hình thủ công. Tự động hóa toàn bộ quy trình.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Tăng Độ Tin Cậy</h3>
+                            <p class="text-gray-400">Khách hàng an tâm hơn khi biết đơn hàng được ghi hình toàn bộ quá trình.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Giảm Tranh Chấp</h3>
+                            <p class="text-gray-400">Có bằng chứng rõ ràng để giải quyết các khiếu nại từ khách hàng.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Dễ Sử Dụng</h3>
+                            <p class="text-gray-400">Giao diện trực quan, không cần kiến thức chuyên môn. Cài đặt trong 5 phút.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <div class="glow-box rounded-3xl overflow-hidden border-2 border-teal-500/30">
+                        <div class="bg-gradient-to-br from-teal-900/40 to-lime-900/40 p-12 text-center">
+                            <div class="text-6xl mb-6 float">📦</div>
+                            <h3 class="text-3xl font-bold mb-4">Đơn Giản & Hiệu Quả</h3>
+                            <p class="text-gray-300 text-lg leading-relaxed">
+                                Chỉ cần bật phần mềm lên và bắt đầu đóng hàng. Mọi thứ còn lại đều tự động.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How It Works Section -->
+    <section id="huong-dan" class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Hướng Dẫn Sử Dụng</h2>
+                <p class="text-xl text-gray-400">Chỉ 4 bước đơn giản để bắt đầu</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Step 1 -->
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Tải & Cài Đặt</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Tải phần mềm về máy tính. Giải nén và chạy file cài đặt. Quá trình cài đặt tự động, không cần cấu hình phức tạp.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Dung lượng: ~50MB
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Hỗ trợ: Windows 10/11
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Thời gian: 2-3 phút
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Cấu Hình Camera</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Chọn camera và góc quay phù hợp. Điều chỉnh độ phân giải và chất lượng video theo nhu cầu của bạn.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Hỗ trợ: Webcam, camera USB
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Độ phân giải: 720p - 4K
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Preview trực tiếp
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Bắt Đầu Ghi Hình</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Đưa mã vận đơn vào khung hình. Phần mềm tự động nhận diện và bắt đầu ghi. Tiếp tục đóng gói như bình thường.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Nhận diện tự động
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Ghi âm thanh (tùy chọn)
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Đếm số đơn hàng
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Step 4 -->
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Quản Lý Video</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Video tự động được lưu theo mã đơn hàng. Dễ dàng tìm kiếm, xem lại và chia sẻ khi cần thiết.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Tìm kiếm theo mã đơn
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Sao lưu tự động
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Xuất video khi cần
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Download Section -->
+    <section id="download" class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-teal-900/10 to-transparent">
+        <div class="max-w-4xl mx-auto">
+            <div class="pricing-card relative z-10">
+                <div class="mb-6">
+                    <span class="inline-block px-4 py-2 bg-lime-400/20 border border-lime-400/30 rounded-full text-sm font-semibold text-lime-400">
+                        🎉 Miễn Phí Trọn Đời
+                    </span>
+                </div>
+                
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4">Tải Ngay</h2>
+                <p class="text-xl text-gray-300 mb-8">
+                    Phần mềm hoàn toàn miễn phí, không giới hạn tính năng
+                </p>
+                
+                <div class="price mb-2">0đ</div>
+                <p class="text-gray-400 mb-8">Miễn phí vĩnh viễn</p>
+                
+                <div class="space-y-4 mb-10 text-left max-w-md mx-auto">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-gray-300">Không giới hạn số lượng đơn hàng</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-gray-300">Cập nhật miễn phí trọn đời</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-gray-300">Hỗ trợ kỹ thuật qua Zalo/Telegram</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span class="text-gray-300">Tài liệu hướng dẫn chi tiết</span>
+                    </div>
+                </div>
+                
+                <a href="https://drive.google.com/file/d/YOUR_FILE_ID/view" class="btn-primary" style="padding: 20px 60px; font-size: 20px;">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Tải Phần Mềm (Windows)
+                </a>
+                
+                <p class="text-gray-400 text-sm mt-6">
+                    Phiên bản: 2.0 | Dung lượng: 52MB | Cập nhật: 10/01/2026
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- FAQ Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Câu Hỏi Thường Gặp</h2>
+                <p class="text-xl text-gray-400">Giải đáp những thắc mắc phổ biến</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có miễn phí không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Có, phần mềm hoàn toàn miễn phí và không giới hạn tính năng. Bạn có thể sử dụng vĩnh viễn mà không phải trả bất kỳ chi phí nào.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có yêu cầu cấu hình máy tính cao không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Không, phần mềm được tối ưu để chạy mượt mà trên hầu hết các máy tính. Yêu cầu tối thiểu: Windows 10, RAM 4GB, có webcam hoặc camera USB.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có nhận diện được tất cả các loại mã vận đơn không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Có, phần mềm hỗ trợ nhận diện mã vạch, mã QR và các định dạng mã vận đơn phổ biến từ các đơn vị vận chuyển như GHN, GHTK, J&T, Viettel Post, v.v.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Video được lưu ở đâu và có bị mất dữ liệu không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Video được lưu trực tiếp trên máy tính của bạn, bạn có thể tùy chỉnh vị trí lưu trữ. Dữ liệu được lưu cục bộ nên rất an toàn và không bị phụ thuộc vào internet. Bạn nên sao lưu định kỳ để đảm bảo an toàn.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Tôi có thể sử dụng nhiều camera cùng lúc không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Phiên bản hiện tại hỗ trợ 1 camera. Chúng tôi đang phát triển tính năng đa camera cho phiên bản tiếp theo dựa trên phản hồi từ người dùng.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Nếu gặp lỗi thì liên hệ ai để được hỗ trợ?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Bạn có thể liên hệ với chúng tôi qua Zalo: 0123456789 hoặc Telegram: @packrecordpro. Chúng tôi sẽ hỗ trợ bạn trong giờ hành chính (8h-18h, T2-T6).
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có cập nhật thường xuyên không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Có, chúng tôi liên tục cập nhật phần mềm để sửa lỗi, tối ưu hiệu suất và thêm tính năng mới dựa trên phản hồi từ người dùng. Tất cả các bản cập nhật đều miễn phí.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-teal-900/20 to-lime-900/10">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl sm:text-5xl font-bold mb-6 glow-text">
+                Sẵn Sàng Tối Ưu Quy Trình?
+            </h2>
+            <p class="text-xl text-gray-300 mb-10 leading-relaxed">
+                Hàng nghìn shop đã tin dùng. Tải ngay để trải nghiệm sự khác biệt!
+            </p>
+            <a href="#download" class="btn-primary" style="padding: 20px 60px; font-size: 20px;">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Tải Miễn Phí Ngay
+            </a>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="py-12 px-4 sm:px-6 lg:px-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-4xl">📦</span>
+                        <span class="text-xl font-bold text-white">PackRecord Pro</span>
+                    </div>
+                    <p class="text-gray-400 leading-relaxed">
+                        Giải pháp ghi hình đóng hàng thông minh, giúp shop bán hàng online tối ưu quy trình và bảo vệ quyền lợi.
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4">Liên Kết</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-teal-400 transition">Trang chủ</a></li>
+                        <li><a href="#huong-dan" class="text-gray-400 hover:text-teal-400 transition">Hướng dẫn</a></li>
+                        <li><a href="#download" class="text-gray-400 hover:text-teal-400 transition">Tải phần mềm</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-teal-400 transition">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4">Liên Hệ</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span>📱</span> Zalo: 0123456789
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span>✈️</span> Telegram: @packrecordpro
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span>📧</span> Email: support@packrecord.pro
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>&copy; 2026 PackRecord Pro. Phần mềm miễn phí cho cộng đồng shop online Việt Nam.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // FAQ Toggle
+        function toggleFaq(element) {
+            const faqItem = element.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Toggle current item
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
+        }
+        
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Fade in on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.feature-card, .step-card').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
