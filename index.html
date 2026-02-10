@@ -1395,48 +1395,32 @@
                 
                 const gasUrl = `${SCRIPT_URL}?${params.toString()}`;
                 
-                // Gọi GAS bằng dynamic script tag (bypass CORS)
-                const scriptEl = document.createElement('script');
-                scriptEl.src = gasUrl + '&callback=handleGASResponse';
-                
-                // Fallback: dùng Image beacon để gửi data dù không nhận response
-                const beacon = new Image();
-                beacon.src = gasUrl;
-                
-                // Thử fetch với redirect follow
+                // Gọi GAS ngầm - chỉ dùng fetch, không block UI
                 fetch(gasUrl, { redirect: 'follow' })
-                    .then(r => r.text())
-                    .then(text => {
+                    .then(function(r) { return r.text(); })
+                    .then(function(text) {
                         try {
-                            const data = JSON.parse(text);
+                            var data = JSON.parse(text);
                             if (data.success && data.checkoutUrl) {
-                                // Cập nhật thêm link payOS checkout
-                                document.getElementById('payosLinkArea').innerHTML = `
-                                    <div class="text-center">
-                                        <a href="${data.checkoutUrl}" target="_blank" class="btn-primary inline-flex" style="padding: 12px 24px; font-size: 15px;">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                            </svg>
-                                            Hoặc thanh toán qua payOS
-                                        </a>
-                                    </div>
-                                `;
-                                // Cập nhật QR nếu payOS trả QR
-                                if (data.qrCode) {
-                                    document.getElementById('qrImage').src = data.qrCode;
+                                var linkArea = document.getElementById('payosLinkArea');
+                                if (linkArea) {
+                                    linkArea.innerHTML = '<div class="text-center mt-3">'
+                                        + '<a href="' + data.checkoutUrl + '" target="_blank" class="btn-primary inline-flex" style="padding:12px 24px;font-size:15px;">'
+                                        + '💳 Thanh toán qua payOS</a></div>';
                                 }
                             }
+                            console.log('GAS OK:', data.success);
                         } catch(e) {
-                            console.log('GAS response không phải JSON (bình thường nếu CORS)');
+                            // Response không phải JSON - bình thường khi CORS redirect
+                            console.log('GAS: không parse được JSON (CORS redirect)');
                         }
                     })
-                    .catch(err => {
-                        console.log('GAS fetch failed (CORS), order đã gửi qua beacon:', err.message);
+                    .catch(function(err) {
+                        console.log('GAS fetch lỗi (CORS):', err.message);
                     });
                     
             } catch (error) {
-                console.log('GAS call error:', error);
-                // Không alert lỗi vì QR VietQR đã hiển thị, khách vẫn thanh toán được
+                console.log('GAS error:', error);
             }
                 
         });
