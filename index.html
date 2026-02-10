@@ -1337,8 +1337,80 @@
                     amount: packageInfo.price
                 });
                 
-                const response = await fetch(`${SCRIPT_URL}?${params.toString()}`);
-                const data = await response.json();
+                // Google Apps Script redirect 302, cần follow redirect
+                const response = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                // GAS có thể trả về text/html thay vì JSON khi redirect
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (parseErr) {
+                    console.error('Response not JSON:', text.substring(0, 200));
+                    // Fallback: nếu GAS redirect về HTML, dùng JSONP
+                    data = await new Promise((resolve, reject) => {
+                        const callbackName = 'payosCallback_' + Date.now();
+                        const script = document.createElement('script');
+                        
+                        window[callbackName] = function(result) {
+                            delete window[callbackName];
+                            document.body.removeChild(script);
+                            resolve(result);
+                        };
+                        
+                        // Thử gọi lại bằng fetch với no-cors (sẽ không đọc được body)
+                        // Nên fallback hiển thị QR VietQR trực tiếp
+                        resolve(null);
+                    });
+                    
+                    if (!data) {
+                        // Fallback: tạo QR VietQR trực tiếp (không qua payOS)
+                        const vietQrUrl = `https://img.vietqr.io/image/970418-8813414181-compact2.jpg?amount=${packageInfo.price}&addInfo=DH${orderCode}&accountName=NGUYEN%20HONG%20THAI`;
+                        
+                        document.getElementById('customerEmail').textContent = email;
+                        document.getElementById('paymentInfo').innerHTML = `
+                            <div class="space-y-4">
+                                <div class="bg-white p-6 rounded-2xl">
+                                    <h4 class="font-bold text-gray-800 mb-4 text-center">Quét mã QR để thanh toán</h4>
+                                    <img src="${vietQrUrl}" alt="QR Code" class="w-full max-w-xs mx-auto">
+                                </div>
+                                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                                    <p class="text-gray-400 text-sm mb-2"><strong>Thông tin chuyển khoản:</strong></p>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">Ngân hàng:</span>
+                                            <span class="text-white font-semibold">BIDV</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">STK:</span>
+                                            <span class="text-white font-mono">8813414181</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">Chủ TK:</span>
+                                            <span class="text-white">NGUYEN HONG THAI</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">Số tiền:</span>
+                                            <span class="text-lime-400 font-bold">${formatMoney(packageInfo.price)}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-400">Nội dung CK:</span>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">DH${orderCode}</span>
+                                                <button onclick="navigator.clipboard.writeText('DH${orderCode}').then(()=>alert('Đã copy!'))" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">Copy</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        document.getElementById('qrSection').classList.remove('hidden');
+                        return; // Đã hiển thị fallback, thoát
+                    }
+                }
                 
                 if (data.success) {
                     // Update customer email display
