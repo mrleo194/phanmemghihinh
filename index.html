@@ -277,6 +277,8 @@
             height: 200%;
             background: radial-gradient(circle, rgba(135, 223, 44, 0.1) 0%, transparent 70%);
             animation: rotate 20s linear infinite;
+            z-index: -1;
+            pointer-events: none;
         }
         
         @keyframes rotate {
@@ -1085,7 +1087,7 @@
     
     <!-- Payment Modal -->
     <div id="paymentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="closeModalOnBackdrop(event)">
-        <div class="bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-teal-500/50 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-teal-500/50 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
             <!-- Close Button -->
             <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
             
@@ -1124,48 +1126,15 @@
                     <!-- Right: QR Code -->
                     <div id="qrSection" class="hidden">
                         <h3 class="text-xl font-bold text-white mb-6">Quét Mã Để Thanh Toán</h3>
-                        
-                        <div class="bg-white p-6 rounded-2xl mb-6">
-                            <img id="qrCode" src="" alt="QR Code" class="w-full max-w-xs mx-auto">
-                        </div>
-                        
-                        <div class="space-y-4 bg-gray-800/50 p-6 rounded-xl border border-gray-700">
-                            <div>
-                                <p class="text-gray-400 text-sm mb-1">Ngân hàng</p>
-                                <p class="text-white font-bold text-lg">BIDV - Ngân hàng TMCP Đầu tư và Phát triển Việt Nam</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-gray-400 text-sm mb-1">Số tài khoản</p>
-                                <p class="text-white font-bold text-lg" id="accountNumber">Đang cập nhật...</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-gray-400 text-sm mb-1">Chủ tài khoản</p>
-                                <p class="text-white font-bold text-lg" id="accountName">Đang cập nhật...</p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-gray-400 text-sm mb-1">Số tiền</p>
-                                <p class="text-lime-400 font-bold text-2xl" id="amount"></p>
-                            </div>
-                            
-                            <div>
-                                <p class="text-gray-400 text-sm mb-1">Nội dung chuyển khoản <span class="text-red-400">*</span></p>
-                                <div class="flex items-center gap-2">
-                                    <p class="text-white font-mono font-bold text-lg bg-gray-700 px-4 py-2 rounded flex-1" id="transferContent"></p>
-                                    <button onclick="copyTransferContent()" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded font-semibold">
-                                        Copy
-                                    </button>
-                                </div>
-                                <p class="text-yellow-400 text-sm mt-2">⚠️ Vui lòng ghi ĐÚNG nội dung để nhận License Key tự động!</p>
-                            </div>
+                        <div id="paymentInfo">
+                            <!-- Nội dung QR/payment sẽ được JS inject vào đây -->
                         </div>
                         
                         <div class="mt-6 p-4 bg-teal-900/30 border border-teal-500/50 rounded-xl">
                             <p class="text-teal-400 font-semibold mb-2">✅ Sau khi chuyển khoản:</p>
                             <p class="text-gray-300 text-sm">License Key sẽ được gửi về email <span class="font-semibold" id="customerEmail"></span> trong vòng 5-30 phút.</p>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
