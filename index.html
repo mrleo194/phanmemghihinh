@@ -1,355 +1,1453 @@
-// ===================================
-// GOOGLE APPS SCRIPT - HỆ THỐNG THANH TOÁN TỰ ĐỘNG VỚI PAYOS
-// ===================================
-
-var CONFIG = {
-  EMAIL_FROM: 'nht194@gmail.com',
-  SHEET_NAME: 'Orders',
-  LICENSE_SHEET_NAME: 'LicenseKeys',
-  PAYOS_CLIENT_ID: 'dbe2f5ab-91c1-4532-8425-1e366cf7572f',
-  PAYOS_API_KEY: '7c5d77ce-b35b-4826-8328-d4f2e0aa7d67',
-  PAYOS_CHECKSUM_KEY: '6899e3509d19e24ec9d59fd6a84192d24f64bc433d608afd50244339030b2d67',
-};
-
-// ===================================
-// HMAC-SHA256 SIGNATURE
-// ===================================
-
-function createSignature(data) {
-  var signData = 'amount=' + data.amount + '&cancelUrl=' + data.cancelUrl + '&description=' + data.description + '&orderCode=' + data.orderCode + '&returnUrl=' + data.returnUrl;
-  var signatureBytes = Utilities.computeHmacSha256Signature(signData, CONFIG.PAYOS_CHECKSUM_KEY);
-  var hex = '';
-  for (var i = 0; i < signatureBytes.length; i++) {
-    var byte = signatureBytes[i];
-    if (byte < 0) byte += 256;
-    var hexByte = byte.toString(16);
-    if (hexByte.length === 1) hexByte = '0' + hexByte;
-    hex += hexByte;
-  }
-  return hex;
-}
-
-// ===================================
-// TẠO PAYMENT LINK PAYOS
-// ===================================
-
-function createPaymentLink(orderData) {
-  try {
-    var url = 'https://api-merchant.payos.vn/v2/payment-requests';
-    var orderCodeNumber = parseInt(orderData.orderCode);
-    if (isNaN(orderCodeNumber) || orderCodeNumber <= 0) {
-      return { success: false, error: 'Mã đơn hàng không hợp lệ' };
-    }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="title" content="Phần Mềm Ghi Hình Đóng Hàng - Tối Ưu Quy Trình Đóng Gói">
+    <meta name="description" content="Phần mềm ghi hình đóng hàng tự động bằng mã vận đơn. Giảm thời gian, tăng hiệu suất, bảo vệ shop khỏi khiếu nại. Dễ sử dụng, giá cả hợp lý.">
+    <meta name="keywords" content="phần mềm ghi hình đóng hàng, ghi hình mã vận đơn, bảo vệ shop, phần mềm livestream bán hàng">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📦%3C/text%3E%3C/svg%3E">
+    <title>Phần Mềm Ghi Hình Đóng Hàng - Tối Ưu Quy Trình</title>
     
-    var returnUrl = 'https://packrecordpro.com/payment-success';
-    var cancelUrl = 'https://packrecordpro.com/payment-cancel';
-    var description = 'DH' + orderData.orderCode;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    var signature = createSignature({
-      amount: orderData.amount, cancelUrl: cancelUrl,
-      description: description, orderCode: orderCodeNumber, returnUrl: returnUrl
-    });
+    <style>
+        :root {
+            --color-bg: #060D10;
+            --color-primary: #21A691;
+            --color-accent: #87DF2C;
+            --color-dark: #27403E;
+            --color-text: #B4B4B2;
+            --color-white: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--color-white);
+        }
+        
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.05;
+            background: 
+                radial-gradient(circle at 20% 50%, var(--color-primary) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, var(--color-accent) 0%, transparent 50%);
+        }
+        
+        /* Glowing effect */
+        .glow-text {
+            text-shadow: 0 0 20px rgba(33, 166, 145, 0.3);
+        }
+        
+        .glow-box {
+            box-shadow: 0 0 30px rgba(33, 166, 145, 0.2);
+        }
+        
+        /* Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary), #1a8574);
+            color: var(--color-white);
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        button.btn-primary {
+            border: 2px solid transparent;
+            outline: none;
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(33, 166, 145, 0.4);
+            border-color: var(--color-accent);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-white);
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            border: 2px solid var(--color-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-primary);
+            transform: translateY(-2px);
+        }
+        
+        /* Feature Cards */
+        .feature-card {
+            background: linear-gradient(135deg, rgba(33, 166, 145, 0.05), rgba(39, 64, 62, 0.05));
+            border: 1px solid rgba(33, 166, 145, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--color-primary);
+            box-shadow: 0 20px 40px rgba(33, 166, 145, 0.15);
+        }
+        
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        /* Step Cards */
+        .step-card {
+            background: rgba(39, 64, 62, 0.3);
+            border: 2px solid var(--color-dark);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .step-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+        }
+        
+        .step-number {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: 20px;
+        }
+        
+        /* FAQ Accordion */
+        .faq-item {
+            background: rgba(39, 64, 62, 0.2);
+            border: 1px solid rgba(33, 166, 145, 0.2);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-question {
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--color-white);
+        }
+        
+        .faq-question:hover {
+            background: rgba(33, 166, 145, 0.1);
+        }
+        
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 24px;
+        }
+        
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 0 24px 24px 24px;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-icon {
+            transition: transform 0.3s ease;
+            font-size: 24px;
+            color: var(--color-accent);
+        }
+        
+        /* Decorative Elements */
+        .decorator {
+            position: absolute;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        .float {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Pricing Card */
+        .pricing-card {
+            background: linear-gradient(135deg, rgba(33, 166, 145, 0.1), rgba(135, 223, 44, 0.05));
+            border: 2px solid var(--color-primary);
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(135, 223, 44, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .price {
+            font-size: 64px;
+            font-weight: 700;
+            color: var(--color-accent);
+            line-height: 1;
+        }
+        
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(6, 13, 16, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(33, 166, 145, 0.2);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .btn-primary, .btn-secondary {
+                padding: 12px 32px;
+                font-size: 16px;
+            }
+            
+            .price {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
     
-    var payload = {
-      orderCode: orderCodeNumber, amount: orderData.amount,
-      description: description, returnUrl: returnUrl,
-      cancelUrl: cancelUrl, signature: signature
-    };
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center gap-3">
+                    <span class="text-4xl">📦</span>
+                    <span class="text-xl font-bold text-white">PackRecord Pro</span>
+                </div>
+                <a href="#download" class="btn-primary" style="padding: 12px 32px; font-size: 16px;">
+                    Tải Ngay
+                    <span>→</span>
+                </a>
+            </div>
+        </div>
+    </nav>
     
-    var options = {
-      method: 'post', contentType: 'application/json',
-      headers: { 'x-client-id': CONFIG.PAYOS_CLIENT_ID, 'x-api-key': CONFIG.PAYOS_API_KEY },
-      payload: JSON.stringify(payload), muteHttpExceptions: true
-    };
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-4xl mx-auto fade-in-up">
+                <div class="inline-block mb-6">
+                    <span class="px-4 py-2 bg-gradient-to-r from-teal-500/20 to-lime-500/20 border border-teal-500/30 rounded-full text-sm font-semibold text-teal-400">
+                        ✨ Giải pháp ghi hình đóng hàng thông minh
+                    </span>
+                </div>
+                
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 glow-text leading-tight">
+                    Ghi Hình Đóng Hàng<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-lime-400">
+                        Tự Động & Chuyên Nghiệp
+                    </span>
+                </h1>
+                
+                <p class="text-xl sm:text-2xl mb-12 text-gray-300 leading-relaxed">
+                    Phần mềm ghi hình đóng hàng gọn nhẹ, tương thích tốt với máy tính tầm trung và webcam thông thường. Dễ cài đặt, dễ sử dụng. <span class="text-lime-400 font-semibold">Dùng thử miễn phí 15 ngày!</span>
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="#download" class="btn-primary">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Dùng Thử Miễn Phí 15 Ngày
+                    </a>
+                    <a href="#gia-ban" class="btn-secondary">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        Xem Bảng Giá
+                    </a>
+                </div>
+                
+                <div class="mt-16 flex flex-wrap justify-center gap-8 text-center">
+                    <div>
+                        <div class="text-4xl font-bold text-lime-400">1000+</div>
+                        <div class="text-gray-400 mt-2">Shop đang sử dụng</div>
+                    </div>
+                    <div class="hidden sm:block w-px bg-gray-700"></div>
+                    <div>
+                        <div class="text-4xl font-bold text-teal-400">99.9%</div>
+                        <div class="text-gray-400 mt-2">Độ chính xác</div>
+                    </div>
+                    <div class="hidden sm:block w-px bg-gray-700"></div>
+                    <div>
+                        <div class="text-4xl font-bold text-lime-400">5 phút</div>
+                        <div class="text-gray-400 mt-2">Cài đặt & sử dụng</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Decorator -->
+        <svg class="decorator" style="top: 10%; right: 5%; width: 200px;" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="80" stroke="url(#grad1)" stroke-width="2"/>
+            <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#21A691;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#87DF2C;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </section>
     
-    var response = UrlFetchApp.fetch(url, options);
-    var responseBody = JSON.parse(response.getContentText());
-    Logger.log('payOS Response: ' + JSON.stringify(responseBody));
+    <!-- Features Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Tính Năng Nổi Bật</h2>
+                <p class="text-xl text-gray-400">Giải pháp toàn diện cho việc ghi hình đóng hàng</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🎥</div>
+                    <h3 class="text-2xl font-bold mb-3">Tự Động Ghi Hình</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Phần mềm tự động nhận diện mã vận đơn và bắt đầu ghi hình. Không cần thao tác thủ công, tiết kiệm thời gian tối đa.
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3 class="text-2xl font-bold mb-3">Nhận Diện Thông Minh</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        AI nhận diện mã vạch, mã QR, và mã vận đơn với độ chính xác cao. Hỗ trợ đa dạng định dạng mã từ các đơn vị vận chuyển.
+                    </p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3 class="text-2xl font-bold mb-3">Lưu Trữ Tự Động</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Video được lưu trữ theo mã đơn hàng, dễ dàng tìm kiếm và quản lý. Hỗ trợ đa dạng định dạng video chất lượng cao.
+                    </p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="text-2xl font-bold mb-3">Bảo Vệ Shop</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Bằng chứng rõ ràng về quá trình đóng gói giúp shop tránh khiếu nại, tranh chấp với khách hàng một cách hiệu quả.
+                    </p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="text-2xl font-bold mb-3">Gọn Nhẹ & Tương Thích</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Chỉ ~2MB, chạy mượt mà trên máy tính và laptop tầm trung. Tương thích tốt với webcam thông thường, không cần cấu hình cao.
+                    </p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="feature-card">
+                    <div class="feature-icon">🎛️</div>
+                    <h3 class="text-2xl font-bold mb-3">Cài Đặt Siêu Dễ</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Setup trong 3 phút: Tải về → Cài đặt → Bắt đầu ghi. Giao diện đơn giản, không cần kiến thức kỹ thuật.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
     
-    if (response.getResponseCode() === 200 && responseBody.code === '00') {
-      return {
-        success: true,
-        checkoutUrl: responseBody.data.checkoutUrl,
-        qrCode: responseBody.data.qrCode
-      };
-    }
-    return { success: false, error: responseBody.desc || 'payOS error' };
-  } catch (error) {
-    Logger.log('Error: ' + error);
-    return { success: false, error: error.toString() };
-  }
-}
-
-// ===================================
-// doPost - WEBHOOK TỪ PAYOS
-// ===================================
-
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    Logger.log('Webhook: ' + JSON.stringify(data));
+    <!-- Benefits Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-teal-900/10">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Lợi Ích Vượt Trội</h2>
+                <p class="text-xl text-gray-400">Tại sao nên chọn phần mềm của chúng tôi?</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-8">
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Tiết Kiệm Thời Gian</h3>
+                            <p class="text-gray-400">Giảm 70% thời gian so với ghi hình thủ công. Tự động hóa toàn bộ quy trình.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Tăng Độ Tin Cậy</h3>
+                            <p class="text-gray-400">Khách hàng an tâm hơn khi biết đơn hàng được ghi hình toàn bộ quá trình.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Giảm Tranh Chấp</h3>
+                            <p class="text-gray-400">Có bằng chứng rõ ràng để giải quyết các khiếu nại từ khách hàng.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-lime-500 flex items-center justify-center text-2xl">
+                                ✓
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2 text-white">Dễ Sử Dụng</h3>
+                            <p class="text-gray-400">Giao diện trực quan, không cần kiến thức chuyên môn. Cài đặt trong 5 phút.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <div class="glow-box rounded-3xl overflow-hidden border-2 border-teal-500/30">
+                        <div class="bg-gradient-to-br from-teal-900/40 to-lime-900/40 p-12 text-center">
+                            <div class="text-6xl mb-6 float">📦</div>
+                            <h3 class="text-3xl font-bold mb-4">Đơn Giản & Hiệu Quả</h3>
+                            <p class="text-gray-300 text-lg leading-relaxed">
+                                Chỉ cần bật phần mềm lên và bắt đầu đóng hàng. Mọi thứ còn lại đều tự động.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
     
-    if (data.code === '00' && data.data) {
-      var orderCode = data.data.description.replace('DH', '');
-      processPayment(orderCode, data.data.amount);
-      return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
-    }
-    return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
-  } catch (error) {
-    Logger.log('doPost error: ' + error);
-    return ContentService.createTextOutput(JSON.stringify({ success: false })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// ===================================
-// doGet - TRẢ VỀ HTML VỚI postMessage (BYPASS CORS)
-// ===================================
-
-function doGet(e) {
-  try {
-    if (!e || !e.parameter || !e.parameter.action) {
-      return HtmlService.createHtmlOutput('<html><body>API Ready</body></html>');
-    }
+    <!-- Reviews Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-teal-900/5">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Khách Hàng Nói Gì</h2>
+                <p class="text-xl text-gray-400">Hơn 1000+ shop đã tin dùng và hài lòng</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Review 1 -->
+                <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border border-teal-500/20 rounded-2xl p-6 hover:border-teal-500/40 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="avatar1.png" alt="Linh Nguyễn" class="w-14 h-14 rounded-full object-cover border-2 border-teal-400/50">
+                        <div>
+                            <h4 class="font-bold text-white text-lg">Linh Nguyễn</h4>
+                            <p class="text-sm text-gray-400">Chủ shop Linh Shoes</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-3">
+                        <span class="text-yellow-400 text-lg">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        Từ ngày dùng phần mềm này, shop mình không còn bị khách nói thiếu hàng hay tráo hàng nữa. Có video là giải quyết trong 1 phút. Bán cả ngàn đơn mà chưa gặp 1 case oan nào. Rất yên tâm.
+                    </p>
+                </div>
+                
+                <!-- Review 2 -->
+                <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border border-teal-500/20 rounded-2xl p-6 hover:border-teal-500/40 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="avatar2.png" alt="Mai Trang" class="w-14 h-14 rounded-full object-cover border-2 border-pink-400/50">
+                        <div>
+                            <h4 class="font-bold text-white text-lg">Mai Trang</h4>
+                            <p class="text-sm text-gray-400">Chủ Moon Cosmetic</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-3">
+                        <span class="text-yellow-400 text-lg">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        Trước đây mỗi lần có khiếu nại là rất mệt vì khách nghi ngờ hàng bị tráo. Từ khi dùng phần mềm này, xử lý khiếu nại cực nhanh, mở video là xong. Tỷ lệ tranh chấp gần như bằng 0.
+                    </p>
+                </div>
+                
+                <!-- Review 3 -->
+                <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border border-teal-500/20 rounded-2xl p-6 hover:border-teal-500/40 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="avatar3.png" alt="Hoàng Vũ" class="w-14 h-14 rounded-full object-cover border-2 border-blue-400/50">
+                        <div>
+                            <h4 class="font-bold text-white text-lg">Hoàng Vũ</h4>
+                            <p class="text-sm text-gray-400">Chủ TechZone Store</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-3">
+                        <span class="text-yellow-400 text-lg">⭐⭐⭐⭐</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        Bán đồ điện tử giá trị cao nên mình rất kỹ khâu đóng gói. Phần mềm ghi hình giúp bên mình yên tâm hơn hẳn, khách cũng tin tưởng hơn khi có video đầy đủ.
+                    </p>
+                </div>
+                
+                <!-- Review 4 -->
+                <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border border-teal-500/20 rounded-2xl p-6 hover:border-teal-500/40 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="avatar4.png" alt="Tuấn Hưng" class="w-14 h-14 rounded-full object-cover border-2 border-amber-400/50">
+                        <div>
+                            <h4 class="font-bold text-white text-lg">Tuấn Hưng</h4>
+                            <p class="text-sm text-gray-400">Chủ Aura Watch</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-3">
+                        <span class="text-yellow-400 text-lg">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        Từ khi áp dụng ghi hình đóng gói bằng phần mềm này, shop mình chưa gặp lại trường hợp khiếu nại vô lý nào. Video rõ, xem lại nhanh, rất phù hợp cho shop bán hàng giá trị cao.
+                    </p>
+                </div>
+                
+                <!-- Review 5 -->
+                <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border border-teal-500/20 rounded-2xl p-6 hover:border-teal-500/40 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="avatar5.png" alt="Hà Thu" class="w-14 h-14 rounded-full object-cover border-2 border-rose-400/50">
+                        <div>
+                            <h4 class="font-bold text-white text-lg">Hà Thu</h4>
+                            <p class="text-sm text-gray-400">Chủ Hana Fashion</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-3">
+                        <span class="text-yellow-400 text-lg">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        Trước đây mỗi tháng đều có vài đơn tranh chấp. Từ ngày dùng phần mềm ghi hình đóng gói, khách khiếu nại là mình gửi video luôn, 100% khách chấp nhận. Thật sự đáng tiền.
+                    </p>
+                </div>
+                
+                <!-- Review 6 -->
+                <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border border-teal-500/20 rounded-2xl p-6 hover:border-teal-500/40 transition-all">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="avatar6.png" alt="Minh Long" class="w-14 h-14 rounded-full object-cover border-2 border-green-400/50">
+                        <div>
+                            <h4 class="font-bold text-white text-lg">Minh Long</h4>
+                            <p class="text-sm text-gray-400">Quản lý kho Fulfillment</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-3">
+                        <span class="text-yellow-400 text-lg">⭐⭐⭐⭐⭐</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        Trước đây mỗi lần có khiếu nại là phải ngồi mở từng file camera, tua tay cả buổi. Giờ video tự động gắn theo từng đơn, chỉ cần bấm là xem được ngay. Tiết kiệm rất nhiều thời gian.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
     
-    var action = e.parameter.action;
-    var result = {};
+    <!-- How It Works Section -->
+    <section id="huong-dan" class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Hướng Dẫn Sử Dụng</h2>
+                <p class="text-xl text-gray-400">Chỉ 4 bước đơn giản để bắt đầu</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Step 1 -->
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Tải & Cài Đặt</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Tải phần mềm về máy tính. Giải nén và chạy file cài đặt. Quá trình cài đặt tự động, không cần cấu hình phức tạp.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Dung lượng: ~50MB
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Hỗ trợ: Windows 10/11
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Thời gian: 2-3 phút
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Cấu Hình Camera</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Chọn camera và góc quay phù hợp. Điều chỉnh độ phân giải và chất lượng video theo nhu cầu của bạn.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Hỗ trợ: Webcam, camera USB
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Độ phân giải: 720p - 4K
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Preview trực tiếp
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Bắt Đầu Ghi Hình</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Đưa mã vận đơn vào khung hình. Phần mềm tự động nhận diện và bắt đầu ghi. Tiếp tục đóng gói như bình thường.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Nhận diện tự động
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Ghi âm thanh (tùy chọn)
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Đếm số đơn hàng
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Step 4 -->
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h3 class="text-2xl font-bold mb-4 text-white">Quản Lý Video</h3>
+                    <p class="text-gray-400 leading-relaxed mb-4">
+                        Video tự động được lưu theo mã đơn hàng. Dễ dàng tìm kiếm, xem lại và chia sẻ khi cần thiết.
+                    </p>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Tìm kiếm theo mã đơn
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Sao lưu tự động
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="text-lime-400">→</span> Xuất video khi cần
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
     
-    if (action === 'create_order') {
-      var orderCode = e.parameter.orderCode;
-      var fullName = e.parameter.fullName;
-      var email = e.parameter.email;
-      var phone = e.parameter.phone;
-      var pkg = e.parameter['package'];
-      var amount = parseInt(e.parameter.amount);
-      
-      if (!orderCode || !fullName || !email || !phone || !pkg || isNaN(amount)) {
-        result = { success: false, error: 'Thiếu thông tin' };
-      } else {
-        var orderData = {
-          orderCode: orderCode, fullName: fullName, email: email, phone: phone,
-          package: pkg, amount: amount, status: 'Chờ thanh toán', timestamp: new Date().toISOString()
+    <!-- Pricing Section -->
+    <section id="gia-ban" class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-teal-900/10 to-transparent">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Bảng Giá</h2>
+                <p class="text-xl text-gray-300 mb-4">Chọn gói phù hợp với nhu cầu của bạn</p>
+                <p class="text-lime-400 font-semibold text-lg">✨ Dùng thử MIỄN PHÍ 15 ngày - Không cần thẻ tín dụng!</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <!-- Gói 1 Năm -->
+                <div class="pricing-card relative z-10 border-2 border-teal-500/50">
+                    <div class="mb-4">
+                        <span class="inline-block px-4 py-2 bg-teal-400/20 border border-teal-400/30 rounded-full text-sm font-semibold text-teal-400">
+                            ⚡ Phổ Biến Nhất
+                        </span>
+                    </div>
+                    
+                    <h3 class="text-3xl font-bold mb-3 text-white">Gói 1 Năm</h3>
+                    <p class="text-gray-300 mb-6">Cho shop có nhu cầu ổn định</p>
+                    
+                    <div class="mb-6">
+                        <div class="text-6xl font-bold text-teal-400 mb-2">499K</div>
+                        <p class="text-gray-400">/ 12 tháng</p>
+                        <p class="text-sm text-lime-400 font-semibold mt-2">Chỉ ~41K/tháng</p>
+                    </div>
+                    
+                    <div class="space-y-3 mb-8 text-left">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Dùng thử 15 ngày miễn phí</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Không giới hạn số đơn hàng</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Cập nhật phiên bản mới miễn phí</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Hỗ trợ kỹ thuật 24/7</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Sử dụng trên 1 máy tính</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="openPaymentModal('1year')" class="btn-primary w-full justify-center" style="padding: 18px 40px; font-size: 18px; cursor: pointer;">
+                        Mua Ngay - 499K
+                    </button>
+                </div>
+                
+                <!-- Gói Trọn Đời -->
+                <div class="pricing-card relative z-10 border-2 border-lime-500/80">
+                    <div class="mb-4">
+                        <span class="inline-block px-4 py-2 bg-lime-400/20 border border-lime-400/30 rounded-full text-sm font-semibold text-lime-400">
+                            👑 Tiết Kiệm Nhất
+                        </span>
+                    </div>
+                    
+                    <h3 class="text-3xl font-bold mb-3 text-white">Gói Trọn Đời</h3>
+                    <p class="text-gray-300 mb-6">Một lần thanh toán, dùng mãi mãi</p>
+                    
+                    <div class="mb-6">
+                        <div class="text-6xl font-bold text-lime-400 mb-2">899K</div>
+                        <p class="text-gray-400">/ Trọn đời</p>
+                        <p class="text-sm text-teal-400 font-semibold mt-2">Tiết kiệm hơn 80% sau 2 năm</p>
+                    </div>
+                    
+                    <div class="space-y-3 mb-8 text-left">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Dùng thử 15 ngày miễn phí</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300">Không giới hạn số đơn hàng</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300 font-semibold">Cập nhật trọn đời MIỄN PHÍ</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300 font-semibold">Hỗ trợ ưu tiên VIP</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-lime-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="text-gray-300 font-semibold">Sử dụng trên 2 máy tính</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="openPaymentModal('lifetime')" class="btn-primary w-full justify-center" style="padding: 18px 40px; font-size: 18px; background: linear-gradient(135deg, #87DF2C, #6BC423); cursor: pointer;">
+                        Mua Ngay - 899K
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <p class="text-gray-400 text-lg mb-4">
+                    💳 <span class="font-semibold text-white">Cách thanh toán:</span> Chuyển khoản ngân hàng → Nhận License Key qua email/Zalo ngay lập tức
+                </p>
+                <p class="text-gray-400">
+                    Hỗ trợ: Zalo <span class="text-teal-400">0912026236</span> (Mr. Thái) | <span class="text-teal-400">0963610986</span> (Ms. Quyên)
+                </p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Download Section -->
+    <section id="download" class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Tải Phần Mềm</h2>
+                <p class="text-xl text-gray-300">Dùng thử 15 ngày - Không cần thẻ tín dụng</p>
+            </div>
+            
+            <div class="bg-gradient-to-br from-teal-900/10 to-lime-900/5 border-2 border-teal-500/30 rounded-3xl p-8 md:p-12 text-center">
+                <div class="mb-6">
+                    <span class="inline-block px-4 py-2 bg-lime-400/20 border border-lime-400/30 rounded-full text-sm font-semibold text-lime-400">
+                        ✅ Miễn Phí 15 Ngày Đầu
+                    </span>
+                </div>
+                
+                <h3 class="text-3xl font-bold mb-4 text-white">Phần Mềm Ghi Hình Đóng Hàng</h3>
+                <p class="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
+                    Tải về và trải nghiệm đầy đủ tính năng trong 15 ngày. Sau đó chọn gói phù hợp để tiếp tục sử dụng.
+                </p>
+                
+                <a href="https://drive.usercontent.google.com/download?id=1jMr_TxpwZtFmOddFFwsLy_If96QSJC4a&export=download&confirm=t" class="btn-primary inline-flex" style="padding: 20px 60px; font-size: 20px;">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Tải Về Miễn Phí (Windows)
+                </a>
+                
+                <p class="text-gray-400 text-sm mt-6">
+                    Dung lượng: ~2MB | Cập nhật: 01/02/2026
+                </p>
+                
+                <div class="mt-8 pt-8 border-t border-gray-700">
+                    <h4 class="font-bold text-white text-lg mb-4">Cách kích hoạt License Key:</h4>
+                    <div class="text-left max-w-xl mx-auto space-y-3 text-gray-300">
+                        <p class="flex items-start gap-2">
+                            <span class="text-lime-400 font-bold">1.</span>
+                            <span>Tải và cài đặt phần mềm</span>
+                        </p>
+                        <p class="flex items-start gap-2">
+                            <span class="text-lime-400 font-bold">2.</span>
+                            <span>Dùng thử 15 ngày hoàn toàn miễn phí</span>
+                        </p>
+                        <p class="flex items-start gap-2">
+                            <span class="text-lime-400 font-bold">3.</span>
+                            <span>Chọn gói phù hợp và chuyển khoản</span>
+                        </p>
+                        <p class="flex items-start gap-2">
+                            <span class="text-lime-400 font-bold">4.</span>
+                            <span>Nhận License Key qua email/Zalo ngay lập tức</span>
+                        </p>
+                        <p class="flex items-start gap-2">
+                            <span class="text-lime-400 font-bold">5.</span>
+                            <span>Nhập License Key vào phần mềm → Kích hoạt thành công!</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- FAQ Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl sm:text-5xl font-bold mb-4 glow-text">Câu Hỏi Thường Gặp</h2>
+                <p class="text-xl text-gray-400">Giải đáp những thắc mắc phổ biến</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có miễn phí không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Bạn được dùng thử MIỄN PHÍ 15 ngày đầu tiên với đầy đủ tính năng. Sau đó có 2 gói: Gói 1 Năm (499K) và Gói Trọn Đời (899K). Thanh toán qua chuyển khoản và nhận License Key ngay.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Làm sao để nhận và kích hoạt License Key?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Sau khi chuyển khoản, bạn sẽ nhận License Key qua email hoặc Zalo ngay lập tức (thường trong vòng 5-30 phút). Mở phần mềm → Vào mục "Kích hoạt" → Nhập License Key → Hoàn tất!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có yêu cầu cấu hình máy tính cao không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Không, phần mềm rất gọn nhẹ (~2MB) và chạy mượt trên máy tính/laptop tầm trung. Yêu cầu: Windows 10/11, RAM 4GB, webcam thông thường. Không cần card đồ họa rời.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có nhận diện được tất cả các loại mã vận đơn không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Có, phần mềm hỗ trợ nhận diện mã vạch, mã QR và các định dạng mã vận đơn phổ biến từ các đơn vị vận chuyển như GHN, GHTK, J&T, Viettel Post, v.v.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Video được lưu ở đâu và có bị mất dữ liệu không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Video được lưu trực tiếp trên máy tính của bạn, bạn có thể tùy chỉnh vị trí lưu trữ. Dữ liệu được lưu cục bộ nên rất an toàn và không bị phụ thuộc vào internet. Bạn nên sao lưu định kỳ để đảm bảo an toàn.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Tôi có thể sử dụng nhiều camera cùng lúc không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Phiên bản hiện tại hỗ trợ 1 camera. Chúng tôi đang phát triển tính năng đa camera cho phiên bản tiếp theo dựa trên phản hồi từ người dùng.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Nếu gặp lỗi thì liên hệ ai để được hỗ trợ?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Bạn có thể liên hệ với chúng tôi qua Zalo: 0123456789 hoặc Telegram: @packrecordpro. Chúng tôi sẽ hỗ trợ bạn trong giờ hành chính (8h-18h, T2-T6).
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Phần mềm có cập nhật thường xuyên không?</span>
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="text-gray-400 leading-relaxed">
+                            Có, chúng tôi liên tục cập nhật phần mềm để sửa lỗi, tối ưu hiệu suất và thêm tính năng mới dựa trên phản hồi từ người dùng. Tất cả các bản cập nhật đều miễn phí.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-teal-900/20 to-lime-900/10">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl sm:text-5xl font-bold mb-6 glow-text">
+                Sẵn Sàng Tối Ưu Quy Trình?
+            </h2>
+            <p class="text-xl text-gray-300 mb-4 leading-relaxed">
+                Hơn 1000+ shop đã tin dùng. Dùng thử ngay 15 ngày miễn phí!
+            </p>
+            <p class="text-lime-400 font-semibold text-lg mb-10">
+                Không cần thẻ tín dụng • Không ràng buộc • Hủy bất cứ lúc nào
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="#download" class="btn-primary" style="padding: 20px 60px; font-size: 20px;">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Dùng Thử Miễn Phí
+                </a>
+                <a href="#gia-ban" class="btn-secondary" style="padding: 20px 60px; font-size: 20px;">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    Xem Bảng Giá
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="closeModalOnBackdrop(event)">
+        <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border-2 border-teal-500/50 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <!-- Close Button -->
+            <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl font-bold">&times;</button>
+            
+            <div class="p-8 md:p-12">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl md:text-4xl font-bold text-white mb-2">Thanh Toán</h2>
+                    <p id="selectedPackage" class="text-xl text-teal-400 font-semibold"></p>
+                </div>
+                
+                <div id="stepForm" class="grid md:grid-cols-2 gap-8">
+                    <!-- Left: Form -->
+                    <div>
+                        <h3 class="text-xl font-bold text-white mb-6">Thông Tin Của Bạn</h3>
+                        <form id="customerForm" class="space-y-4">
+                            <div>
+                                <label class="block text-gray-300 mb-2 font-semibold">Họ và Tên <span class="text-red-400">*</span></label>
+                                <input type="text" id="fullName" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-teal-500 focus:outline-none" placeholder="Nguyễn Văn A">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-300 mb-2 font-semibold">Email <span class="text-red-400">*</span></label>
+                                <input type="email" id="email" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-teal-500 focus:outline-none" placeholder="email@example.com">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-300 mb-2 font-semibold">Số Điện Thoại <span class="text-red-400">*</span></label>
+                                <input type="tel" id="phone" required pattern="[0-9]{10}" class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-teal-500 focus:outline-none" placeholder="0912345678">
+                            </div>
+                            
+                            <button type="submit" class="w-full btn-primary justify-center" style="padding: 16px; font-size: 18px;">
+                                Tạo Mã QR Thanh Toán
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Right: QR Code -->
+                    <div id="qrSection" class="hidden">
+                        <h3 class="text-xl font-bold text-white mb-6">Quét Mã Để Thanh Toán</h3>
+                        <div id="paymentInfo">
+                            <!-- Nội dung QR/payment sẽ được JS inject vào đây -->
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-teal-900/30 border border-teal-500/50 rounded-xl">
+                            <p class="text-teal-400 font-semibold mb-2">✅ Sau khi chuyển khoản:</p>
+                            <p class="text-gray-300 text-sm">License Key sẽ được gửi về email <span class="font-semibold" id="customerEmail"></span> trong vòng 5-30 phút.</p>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="py-12 px-4 sm:px-6 lg:px-8 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="text-4xl">📦</span>
+                        <span class="text-xl font-bold text-white">PackRecord Pro</span>
+                    </div>
+                    <p class="text-gray-400 leading-relaxed">
+                        Giải pháp ghi hình đóng hàng thông minh, giúp shop bán hàng online tối ưu quy trình và bảo vệ quyền lợi.
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4">Liên Kết</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-teal-400 transition">Trang chủ</a></li>
+                        <li><a href="#huong-dan" class="text-gray-400 hover:text-teal-400 transition">Hướng dẫn</a></li>
+                        <li><a href="#download" class="text-gray-400 hover:text-teal-400 transition">Tải phần mềm</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-teal-400 transition">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4">Liên Hệ</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <span>📱</span> Zalo: 0912026236 (Mr. Thái), 0963610986 (Ms. Quyên)
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span>✈️</span> Telegram: @packrecordpro
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span>📧</span> Email: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0a797f7a7a65787e4a7a6b6961786f6965786e247a7865">[email&#160;protected]</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>&copy; 2026 PackRecord Pro. Phần mềm miễn phí cho cộng đồng shop online Việt Nam.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // FAQ Toggle
+        function toggleFaq(element) {
+            const faqItem = element.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Toggle current item
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
+        }
+        
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Fade in on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
         };
         
-        Logger.log('Creating order: ' + JSON.stringify(orderData));
-        saveOrder(orderData);
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
         
-        var paymentResult = createPaymentLink(orderData);
-        if (paymentResult.success) {
-          result = { success: true, orderCode: orderCode, checkoutUrl: paymentResult.checkoutUrl, qrCode: paymentResult.qrCode };
-        } else {
-          result = { success: false, error: paymentResult.error };
+        document.querySelectorAll('.feature-card, .step-card').forEach(el => {
+                   el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+        
+        // Payment Modal Functions
+        let selectedPackage = '';
+        let orderCode = '';
+        
+        // Thông tin tài khoản BIDV
+        const BANK_CONFIG = {
+            bankCode: '970418', // Mã BIDV
+            accountNumber: '8813414181',
+            accountName: 'NGUYEN HONG THAI'
+        };
+        
+        const PACKAGES = {
+            '1year': { name: 'Gói 1 Năm', price: 499000 },
+            'lifetime': { name: 'Gói Trọn Đời', price: 899000 }
+        };
+        
+        // GOOGLE APPS SCRIPT WEB APP URL
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwYScERQLSLcwgSdh8ocZXqCYQNid3e69s6X8JYbq8hLiOLm13grFiFY96qnvuRcEmfg/exec';
+        
+        function openPaymentModal(packageType) {
+            selectedPackage = packageType;
+            document.getElementById('selectedPackage').textContent = PACKAGES[packageType].name + ' - ' + formatMoney(PACKAGES[packageType].price);
+            document.getElementById('paymentModal').classList.remove('hidden');
+            document.getElementById('paymentModal').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            
+            // Reset form
+            document.getElementById('customerForm').reset();
+            document.getElementById('qrSection').classList.add('hidden');
         }
-      }
-    } else if (action === 'verify_license') {
-      // Verify vẫn trả JSON bình thường (gọi từ C# app, không có CORS issue)
-      return verifyLicense(e.parameter.licenseKey);
-    } else {
-      result = { success: false, error: 'Invalid action' };
-    }
-    
-    // Trả HTML chứa postMessage - bypass CORS
-    var html = '<!DOCTYPE html><html><body><script>'
-      + 'var data = ' + JSON.stringify(result) + ';'
-      + 'if (window.parent && window.parent !== window) {'
-      + '  window.parent.postMessage({type: "GAS_RESPONSE", data: data}, "*");'
-      + '}'
-      + '</script></body></html>';
-    
-    return HtmlService.createHtmlOutput(html)
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-    
-  } catch (error) {
-    Logger.log('doGet error: ' + error);
-    var errorHtml = '<!DOCTYPE html><html><body><script>'
-      + 'window.parent.postMessage({type: "GAS_RESPONSE", data: {success: false, error: "' + error.toString().replace(/"/g, '\\"') + '"}}, "*");'
-      + '</script></body></html>';
-    return HtmlService.createHtmlOutput(errorHtml)
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-}
-
-// ===================================
-// LƯU ĐƠN HÀNG
-// ===================================
-
-function saveOrder(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.SHEET_NAME);
-    sheet.appendRow(['Mã ĐH', 'Họ Tên', 'Email', 'SĐT', 'Gói', 'Giá', 'Trạng Thái', 'License Key', 'Ngày Hết Hạn', 'Thời Gian Đặt', 'Ghi Chú']);
-    sheet.getRange(1, 1, 1, 11).setBackground('#21A691').setFontColor('#FFFFFF').setFontWeight('bold');
-  }
-  sheet.appendRow([data.orderCode, data.fullName, data.email, data.phone, data.package, data.amount, data.status, '', '', data.timestamp, '']);
-}
-
-// ===================================
-// XỬ LÝ THANH TOÁN (từ webhook)
-// ===================================
-
-function processPayment(orderCode, paidAmount) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
-  if (!sheet) return;
-  var data = sheet.getDataRange().getValues();
-  
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(orderCode) && data[i][6] === 'Chờ thanh toán') {
-      var email = data[i][2], fullName = data[i][1], packageName = data[i][4], amount = data[i][5];
-      if (paidAmount >= amount) {
-        var licenseKey = generateLicenseKey(packageName);
-        var expiryDate = calculateExpiryDate(packageName);
-        sheet.getRange(i + 1, 7).setValue('Đã thanh toán ✅');
-        sheet.getRange(i + 1, 8).setValue(licenseKey);
-        sheet.getRange(i + 1, 9).setValue(expiryDate);
-        sheet.getRange(i + 1, 11).setValue('Auto: ' + new Date().toLocaleString('vi-VN'));
-        saveLicenseKey(licenseKey, String(orderCode), packageName, email, expiryDate);
-        sendLicenseEmail(email, fullName, licenseKey, packageName, expiryDate);
-        Logger.log('✅ Processed: ' + orderCode + ' → ' + licenseKey);
-      }
-      break;
-    }
-  }
-}
-
-// ===================================
-// LICENSE KEY
-// ===================================
-
-function generateLicenseKey(packageName) {
-  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  var prefix = (packageName.indexOf('Trọn Đời') >= 0 || packageName.indexOf('Lifetime') >= 0) ? 'ANVP-' : 'ANVI-';
-  var key = prefix;
-  for (var i = 0; i < 3; i++) {
-    for (var j = 0; j < 4; j++) key += chars.charAt(Math.floor(Math.random() * chars.length));
-    if (i < 2) key += '-';
-  }
-  return key;
-}
-
-function calculateExpiryDate(packageName) {
-  if (packageName.indexOf('Trọn Đời') >= 0 || packageName.indexOf('Lifetime') >= 0) return 'Trọn đời';
-  return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN');
-}
-
-function saveLicenseKey(licenseKey, orderCode, packageName, email, expiryDate) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.LICENSE_SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.LICENSE_SHEET_NAME);
-    sheet.appendRow(['License Key', 'Mã ĐH', 'Gói', 'Email', 'Ngày Kích Hoạt', 'Ngày Hết Hạn', 'Trạng Thái']);
-    sheet.getRange(1, 1, 1, 7).setBackground('#87DF2C').setFontColor('#000000').setFontWeight('bold');
-  }
-  sheet.appendRow([licenseKey, orderCode, packageName, email, new Date().toLocaleString('vi-VN'), expiryDate, 'Đã gửi']);
-}
-
-// ===================================
-// GỬI EMAIL
-// ===================================
-
-function sendLicenseEmail(email, fullName, licenseKey, packageName, expiryDate) {
-  var isLifetime = packageName.indexOf('Trọn Đời') >= 0 || packageName.indexOf('Lifetime') >= 0;
-  var packageIcon = isLifetime ? '👑' : '⭐';
-  var expiryText = isLifetime ? '<strong style="color:#87DF2C">Trọn đời</strong>' : '<strong>' + expiryDate + '</strong>';
-  
-  var htmlBody = '<!DOCTYPE html><html><head><style>'
-    + 'body{font-family:Arial,sans-serif;line-height:1.6;color:#333}'
-    + '.container{max-width:600px;margin:0 auto;padding:20px}'
-    + '.header{background:linear-gradient(135deg,#21A691,#87DF2C);color:#fff;padding:30px;text-align:center;border-radius:10px 10px 0 0}'
-    + '.content{background:#f9f9f9;padding:30px;border-radius:0 0 10px 10px}'
-    + '.license-box{background:#fff;border:2px dashed #21A691;padding:20px;margin:20px 0;text-align:center;border-radius:8px}'
-    + '.license-key{font-size:28px;font-weight:bold;color:#21A691;letter-spacing:2px;font-family:monospace}'
-    + '</style></head><body><div class="container">'
-    + '<div class="header"><h1 style="margin:0">📦 PackRecord Pro</h1></div>'
-    + '<div class="content">'
-    + '<p>Xin chào <strong>' + fullName + '</strong>,</p>'
-    + '<p>Cảm ơn bạn đã mua <strong>' + packageIcon + ' ' + packageName + '</strong>.</p>'
-    + '<div class="license-box"><p style="color:#666">License Key:</p><div class="license-key">' + licenseKey + '</div></div>'
-    + '<p><strong>Hạn sử dụng:</strong> ' + expiryText + '</p>'
-    + '<p><strong>Hỗ trợ:</strong> Zalo 0912026236 (Mr. Thái) | 0963610986 (Ms. Quyên)</p>'
-    + '</div></div></body></html>';
-  
-  MailApp.sendEmail({ to: email, subject: '🎉 License Key PackRecord Pro', htmlBody: htmlBody });
-  Logger.log('Email sent to: ' + email);
-}
-
-// ===================================
-// VERIFY LICENSE (trả JSON - dùng cho C# app)
-// ===================================
-
-function verifyLicense(licenseKey) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(CONFIG.LICENSE_SHEET_NAME);
-    if (!sheet) return ContentService.createTextOutput(JSON.stringify({ valid: false })).setMimeType(ContentService.MimeType.JSON);
-    
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === licenseKey) {
-        var expiryDate = data[i][5];
-        var isExpired = false, daysRemaining = -1;
-        if (expiryDate !== 'Trọn đời' && expiryDate !== '') {
-          var parts = expiryDate.split('/');
-          if (parts.length === 3) {
-            var expiry = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-            isExpired = expiry < new Date();
-            if (!isExpired) daysRemaining = Math.ceil((expiry - new Date()) / 86400000);
-          }
+        
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+            document.getElementById('paymentModal').classList.remove('flex');
+            document.body.style.overflow = 'auto';
         }
-        return ContentService.createTextOutput(JSON.stringify({
-          valid: true, licenseKey: licenseKey, package: data[i][2],
-          email: data[i][3], activationDate: data[i][4], expiryDate: expiryDate,
-          isLifetime: expiryDate === 'Trọn đời', isExpired: isExpired, daysRemaining: daysRemaining
-        })).setMimeType(ContentService.MimeType.JSON);
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify({ valid: false, error: 'License key not found' })).setMimeType(ContentService.MimeType.JSON);
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ valid: false, error: error.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// ===================================
-// THỦ CÔNG + TEST
-// ===================================
-
-function manualProcessAllPending() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
-  if (!sheet) return;
-  var data = sheet.getDataRange().getValues();
-  var processed = 0;
-  
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][6] === 'Chờ thanh toán') {
-      var licenseKey = generateLicenseKey(data[i][4]);
-      var expiryDate = calculateExpiryDate(data[i][4]);
-      sheet.getRange(i + 1, 7).setValue('Đã thanh toán ✅');
-      sheet.getRange(i + 1, 8).setValue(licenseKey);
-      sheet.getRange(i + 1, 9).setValue(expiryDate);
-      sheet.getRange(i + 1, 11).setValue('Thủ công: ' + new Date().toLocaleString('vi-VN'));
-      saveLicenseKey(licenseKey, String(data[i][0]), data[i][4], data[i][2], expiryDate);
-      try { sendLicenseEmail(data[i][2], data[i][1], licenseKey, data[i][4], expiryDate); } catch(e) { Logger.log('Email error: ' + e); }
-      Logger.log('✅ ' + data[i][0] + ' → ' + licenseKey + ' → ' + data[i][2]);
-      processed++;
-    }
-  }
-  Logger.log('=== Xử lý xong: ' + processed + ' đơn ===');
-}
-
-function testCreateOrder() {
-  var result = doGet({ parameter: { action: 'create_order', orderCode: '0210191530999', fullName: 'Test', email: 'nht194@gmail.com', phone: '0912026236', package: 'Gói 1 Năm', amount: '499000' } });
-  Logger.log('Result: ' + result.getContent());
-}
-
-function testWebhook() {
-  var result = doPost({ postData: { contents: JSON.stringify({ code: '00', desc: 'success', data: { orderCode: 210191530999, amount: 499000, description: 'DH0210191530999', code: '00', desc: 'OK' }, signature: 'test' }) } });
-  Logger.log('Webhook result: ' + result.getContent());
-}
-
-function requestPermission() {
-  UrlFetchApp.fetch('https://httpbin.org/get');
-  SpreadsheetApp.getActiveSpreadsheet();
-  MailApp.sendEmail({ to: 'nht194@gmail.com', subject: 'Test Permission', htmlBody: 'OK' });
-  Logger.log('All permissions OK!');
-}
+        
+        function closeModalOnBackdrop(event) {
+            if (event.target.id === 'paymentModal') {
+                closePaymentModal();
+            }
+        }
+        
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        }
+        
+        function generateOrderCode() {
+            // payOS yêu cầu orderCode là số nguyên, tối đa ~13 chữ số
+            // Format: MMDDHHmmss + 3 random = 13 digits
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            
+            return `${month}${day}${hours}${minutes}${seconds}${random}`;
+        }
+        
+        // Handle form submission
+        document.getElementById('customerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            
+            if (!fullName || !email || !phone) {
+                alert('Vui lòng điền đầy đủ thông tin!');
+                return;
+            }
+            
+            orderCode = generateOrderCode();
+            const packageInfo = PACKAGES[selectedPackage];
+            
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="animate-spin">⏳</span> Đang tạo mã thanh toán...';
+            
+            // Tạo params
+            const params = new URLSearchParams({
+                action: 'create_order',
+                orderCode: orderCode,
+                fullName: fullName,
+                email: email,
+                phone: phone,
+                package: packageInfo.name,
+                amount: packageInfo.price
+            });
+            
+            // Timeout: nếu sau 15s không nhận được response → hiện QR VietQR fallback
+            let responded = false;
+            const timeout = setTimeout(function() {
+                if (!responded) {
+                    responded = true;
+                    showFallbackQR(packageInfo, orderCode, email);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Tạo Mã QR Thanh Toán';
+                }
+            }, 15000);
+            
+            // Lắng nghe postMessage từ iframe
+            function handleMessage(event) {
+                if (event.data && event.data.type === 'GAS_RESPONSE') {
+                    responded = true;
+                    clearTimeout(timeout);
+                    window.removeEventListener('message', handleMessage);
+                    
+                    var data = event.data.data;
+                    console.log('GAS response:', data);
+                    
+                    if (data.success && data.qrCode) {
+                        // Hiển thị QR payOS
+                        showPayOSQR(data, packageInfo, orderCode, email);
+                    } else {
+                        // payOS lỗi → fallback VietQR
+                        console.log('payOS error:', data.error);
+                        showFallbackQR(packageInfo, orderCode, email);
+                    }
+                    
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Tạo Mã QR Thanh Toán';
+                    
+                    // Xóa iframe
+                    var oldIframe = document.getElementById('gasFrame');
+                    if (oldIframe) oldIframe.remove();
+                }
+            }
+            window.addEventListener('message', handleMessage);
+            
+            // Tạo iframe ẩn gọi GAS
+            var iframe = document.createElement('iframe');
+            iframe.id = 'gasFrame';
+            iframe.style.display = 'none';
+            iframe.src = SCRIPT_URL + '?' + params.toString();
+            document.body.appendChild(iframe);
+        });
+        
+        // Hiển thị QR payOS (khi GAS trả về thành công)
+        function showPayOSQR(data, packageInfo, orderCode, email) {
+            document.getElementById('customerEmail').textContent = email;
+            document.getElementById('paymentInfo').innerHTML = 
+                '<div class="space-y-4">'
+                + '  <div class="bg-white p-5 rounded-2xl">'
+                + '    <h4 class="font-bold text-gray-800 mb-3 text-center text-sm">Quét mã QR để thanh toán</h4>'
+                + '    <img src="' + data.qrCode + '" alt="QR payOS" class="w-full max-w-[280px] mx-auto">'
+                + '  </div>'
+                + '  <div class="text-center">'
+                + '    <a href="' + data.checkoutUrl + '" target="_blank" class="btn-primary inline-flex" style="padding:14px 28px;font-size:16px;">'
+                + '      💳 Mở trang thanh toán payOS'
+                + '    </a>'
+                + '  </div>'
+                + '  <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">'
+                + '    <div class="space-y-2 text-sm">'
+                + '      <div class="flex justify-between"><span class="text-gray-400">Ngân hàng:</span><span class="text-white font-semibold">BIDV</span></div>'
+                + '      <div class="flex justify-between"><span class="text-gray-400">STK:</span><span class="text-white font-mono">' + BANK_CONFIG.accountNumber + '</span></div>'
+                + '      <div class="flex justify-between"><span class="text-gray-400">Chủ TK:</span><span class="text-white">' + BANK_CONFIG.accountName + '</span></div>'
+                + '      <div class="flex justify-between"><span class="text-gray-400">Số tiền:</span><span class="text-lime-400 font-bold">' + formatMoney(packageInfo.price) + '</span></div>'
+                + '      <div class="flex justify-between items-center"><span class="text-gray-400">Nội dung:</span>'
+                + '        <div class="flex items-center gap-2">'
+                + '          <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">DH' + orderCode + '</span>'
+                + '          <button onclick="navigator.clipboard.writeText(\'DH' + orderCode + '\').then(function(){alert(\'Đã copy!\')})" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">Copy</button>'
+                + '        </div>'
+                + '      </div>'
+                + '    </div>'
+                + '  </div>'
+                + '  <div class="p-3 bg-teal-900/30 border border-teal-500/50 rounded-xl">'
+                + '    <p class="text-teal-400 text-sm">✅ Sau khi thanh toán, License Key sẽ được gửi tự động về email <strong>' + email + '</strong></p>'
+                + '  </div>'
+                + '</div>';
+            document.getElementById('qrSection').classList.remove('hidden');
+        }
+        
+        // Fallback: QR VietQR (khi GAS bị lỗi/timeout)
+        function showFallbackQR(packageInfo, orderCode, email) {
+            var transferContent = 'DH' + orderCode;
+            var vietQrUrl = 'https://img.vietqr.io/image/' + BANK_CONFIG.bankCode + '-' + BANK_CONFIG.accountNumber + '-compact2.jpg?amount=' + packageInfo.price + '&addInfo=' + encodeURIComponent(transferContent) + '&accountName=' + encodeURIComponent(BANK_CONFIG.accountName);
+            
+            document.getElementById('customerEmail').textContent = email;
+            document.getElementById('paymentInfo').innerHTML = 
+                '<div class="space-y-4">'
+                + '  <div class="bg-white p-5 rounded-2xl">'
+                + '    <h4 class="font-bold text-gray-800 mb-3 text-center text-sm">Quét mã QR để thanh toán</h4>'
+                + '    <img src="' + vietQrUrl + '" alt="QR VietQR" class="w-full max-w-[280px] mx-auto">'
+                + '  </div>'
+                + '  <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">'
+                + '    <div class="space-y-2 text-sm">'
+                + '      <div class="flex justify-between"><span class="text-gray-400">Ngân hàng:</span><span class="text-white font-semibold">BIDV</span></div>'
+                + '      <div class="flex justify-between"><span class="text-gray-400">STK:</span><span class="text-white font-mono">' + BANK_CONFIG.accountNumber + '</span></div>'
+                + '      <div class="flex justify-between"><span class="text-gray-400">Chủ TK:</span><span class="text-white">' + BANK_CONFIG.accountName + '</span></div>'
+                + '      <div class="flex justify-between"><span class="text-gray-400">Số tiền:</span><span class="text-lime-400 font-bold">' + formatMoney(packageInfo.price) + '</span></div>'
+                + '      <div class="flex justify-between items-center"><span class="text-gray-400">Nội dung:</span>'
+                + '        <div class="flex items-center gap-2">'
+                + '          <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">' + transferContent + '</span>'
+                + '          <button onclick="navigator.clipboard.writeText(\'' + transferContent + '\').then(function(){alert(\'Đã copy!\')})" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">Copy</button>'
+                + '        </div>'
+                + '      </div>'
+                + '    </div>'
+                + '  </div>'
+                + '  <div class="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-xl">'
+                + '    <p class="text-yellow-400 text-sm">⚠️ Vui lòng ghi <strong>ĐÚNG nội dung</strong> CK. Liên hệ Zalo 0912026236 nếu cần hỗ trợ.</p>'
+                + '  </div>'
+                + '</div>';
+            document.getElementById('qrSection').classList.remove('hidden');
+        }
+        
+    </script>
+</body>
+</html>
