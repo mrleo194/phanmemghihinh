@@ -1288,8 +1288,9 @@
         }
         
         function generateOrderCode() {
+            // payOS yêu cầu orderCode là số nguyên, tối đa ~13 chữ số
+            // Format: MMDDHHmmss + 3 random = 13 digits
             const now = new Date();
-            const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const hours = String(now.getHours()).padStart(2, '0');
@@ -1297,7 +1298,7 @@
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
-            return `DH${year}${month}${day}${hours}${minutes}${seconds}${random}`;
+            return `${month}${day}${hours}${minutes}${seconds}${random}`;
         }
         
         // Handle form submission
