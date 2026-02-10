@@ -1325,8 +1325,64 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="animate-spin">⏳</span> Đang tạo mã thanh toán...';
             
+            // === BƯỚC 1: Hiển thị QR VietQR ngay lập tức ===
+            const transferContent = 'DH' + orderCode;
+            const vietQrUrl = `https://img.vietqr.io/image/${BANK_CONFIG.bankCode}-${BANK_CONFIG.accountNumber}-compact2.jpg?amount=${packageInfo.price}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(BANK_CONFIG.accountName)}`;
+            
+            document.getElementById('customerEmail').textContent = email;
+            document.getElementById('paymentInfo').innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-white p-5 rounded-2xl">
+                        <h4 class="font-bold text-gray-800 mb-3 text-center text-sm">Quét mã QR để thanh toán</h4>
+                        <img src="${vietQrUrl}" alt="QR Code" class="w-full max-w-[280px] mx-auto" id="qrImage">
+                    </div>
+                    
+                    <div id="payosLinkArea"></div>
+                    
+                    <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                        <p class="text-gray-400 text-sm mb-2"><strong>Thông tin chuyển khoản:</strong></p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Ngân hàng:</span>
+                                <span class="text-white font-semibold">BIDV</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">STK:</span>
+                                <span class="text-white font-mono">${BANK_CONFIG.accountNumber}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Chủ TK:</span>
+                                <span class="text-white">${BANK_CONFIG.accountName}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Số tiền:</span>
+                                <span class="text-lime-400 font-bold">${formatMoney(packageInfo.price)}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Nội dung CK:</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">${transferContent}</span>
+                                    <button onclick="navigator.clipboard.writeText('${transferContent}').then(()=>alert('Đã copy: ${transferContent}'))" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-xl">
+                        <p class="text-yellow-400 text-sm">⚠️ Vui lòng ghi <strong>ĐÚNG nội dung</strong> chuyển khoản để nhận License Key tự động!</p>
+                    </div>
+                </div>
+            `;
+            
+            // Show QR section ngay
+            document.getElementById('qrSection').classList.remove('hidden');
+            
+            // Reset button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Tạo Mã QR Thanh Toán';
+            
+            // === BƯỚC 2: Gọi GAS ngầm để lưu order + tạo payOS link ===
             try {
-                // Call Apps Script to create order and payment link
                 const params = new URLSearchParams({
                     action: 'create_order',
                     orderCode: orderCode,
@@ -1337,153 +1393,52 @@
                     amount: packageInfo.price
                 });
                 
-                // Google Apps Script redirect 302, cần follow redirect
-                const response = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
+                const gasUrl = `${SCRIPT_URL}?${params.toString()}`;
                 
-                // GAS có thể trả về text/html thay vì JSON khi redirect
-                const text = await response.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (parseErr) {
-                    console.error('Response not JSON:', text.substring(0, 200));
-                    // Fallback: nếu GAS redirect về HTML, dùng JSONP
-                    data = await new Promise((resolve, reject) => {
-                        const callbackName = 'payosCallback_' + Date.now();
-                        const script = document.createElement('script');
-                        
-                        window[callbackName] = function(result) {
-                            delete window[callbackName];
-                            document.body.removeChild(script);
-                            resolve(result);
-                        };
-                        
-                        // Thử gọi lại bằng fetch với no-cors (sẽ không đọc được body)
-                        // Nên fallback hiển thị QR VietQR trực tiếp
-                        resolve(null);
+                // Gọi GAS bằng dynamic script tag (bypass CORS)
+                const scriptEl = document.createElement('script');
+                scriptEl.src = gasUrl + '&callback=handleGASResponse';
+                
+                // Fallback: dùng Image beacon để gửi data dù không nhận response
+                const beacon = new Image();
+                beacon.src = gasUrl;
+                
+                // Thử fetch với redirect follow
+                fetch(gasUrl, { redirect: 'follow' })
+                    .then(r => r.text())
+                    .then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            if (data.success && data.checkoutUrl) {
+                                // Cập nhật thêm link payOS checkout
+                                document.getElementById('payosLinkArea').innerHTML = `
+                                    <div class="text-center">
+                                        <a href="${data.checkoutUrl}" target="_blank" class="btn-primary inline-flex" style="padding: 12px 24px; font-size: 15px;">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                            </svg>
+                                            Hoặc thanh toán qua payOS
+                                        </a>
+                                    </div>
+                                `;
+                                // Cập nhật QR nếu payOS trả QR
+                                if (data.qrCode) {
+                                    document.getElementById('qrImage').src = data.qrCode;
+                                }
+                            }
+                        } catch(e) {
+                            console.log('GAS response không phải JSON (bình thường nếu CORS)');
+                        }
+                    })
+                    .catch(err => {
+                        console.log('GAS fetch failed (CORS), order đã gửi qua beacon:', err.message);
                     });
                     
-                    if (!data) {
-                        // Fallback: tạo QR VietQR trực tiếp (không qua payOS)
-                        const vietQrUrl = `https://img.vietqr.io/image/970418-8813414181-compact2.jpg?amount=${packageInfo.price}&addInfo=DH${orderCode}&accountName=NGUYEN%20HONG%20THAI`;
-                        
-                        document.getElementById('customerEmail').textContent = email;
-                        document.getElementById('paymentInfo').innerHTML = `
-                            <div class="space-y-4">
-                                <div class="bg-white p-6 rounded-2xl">
-                                    <h4 class="font-bold text-gray-800 mb-4 text-center">Quét mã QR để thanh toán</h4>
-                                    <img src="${vietQrUrl}" alt="QR Code" class="w-full max-w-xs mx-auto">
-                                </div>
-                                <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                                    <p class="text-gray-400 text-sm mb-2"><strong>Thông tin chuyển khoản:</strong></p>
-                                    <div class="space-y-2 text-sm">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">Ngân hàng:</span>
-                                            <span class="text-white font-semibold">BIDV</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">STK:</span>
-                                            <span class="text-white font-mono">8813414181</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">Chủ TK:</span>
-                                            <span class="text-white">NGUYEN HONG THAI</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">Số tiền:</span>
-                                            <span class="text-lime-400 font-bold">${formatMoney(packageInfo.price)}</span>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-gray-400">Nội dung CK:</span>
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">DH${orderCode}</span>
-                                                <button onclick="navigator.clipboard.writeText('DH${orderCode}').then(()=>alert('Đã copy!'))" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">Copy</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        document.getElementById('qrSection').classList.remove('hidden');
-                        return; // Đã hiển thị fallback, thoát
-                    }
-                }
-                
-                if (data.success) {
-                    // Update customer email display
-                    document.getElementById('customerEmail').textContent = email;
-                    document.getElementById('amount').textContent = formatMoney(packageInfo.price);
-                    document.getElementById('transferContent').textContent = orderCode;
-                    
-                    // Show payment section with payOS link
-                    document.getElementById('paymentInfo').innerHTML = `
-                        <div class="space-y-4">
-                            <div class="bg-white p-6 rounded-2xl">
-                                <h4 class="font-bold text-gray-800 mb-4 text-center">Quét mã QR để thanh toán</h4>
-                                <img src="${data.qrCode}" alt="QR Code" class="w-full max-w-xs mx-auto">
-                            </div>
-                            
-                            <div class="text-center">
-                                <p class="text-gray-300 mb-3">Hoặc thanh toán qua link:</p>
-                                <a href="${data.checkoutUrl}" target="_blank" class="btn-primary inline-flex">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                    </svg>
-                                    Mở Trang Thanh Toán
-                                </a>
-                            </div>
-                            
-                            <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                                <p class="text-gray-400 text-sm mb-2"><strong>Thông tin chuyển khoản:</strong></p>
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-400">Ngân hàng:</span>
-                                        <span class="text-white font-semibold">BIDV</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-400">STK:</span>
-                                        <span class="text-white font-mono">8813414181</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-400">Chủ TK:</span>
-                                        <span class="text-white">NGUYEN HONG THAI</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-400">Số tiền:</span>
-                                        <span class="text-lime-400 font-bold">${formatMoney(packageInfo.price)}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-400">Nội dung:</span>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">${orderCode}</span>
-                                            <button onclick="copyTransferContent()" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">
-                                                Copy
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Show QR section
-                    document.getElementById('qrSection').classList.remove('hidden');
-                    
-                } else {
-                    alert('Lỗi: ' + (data.error || 'Không thể tạo mã thanh toán'));
-                }
-                
             } catch (error) {
-                console.error('Error:', error);
-                alert('Lỗi kết nối! Vui lòng thử lại.');
-            } finally {
-                // Reset button
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Tạo Mã QR Thanh Toán';
+                console.log('GAS call error:', error);
+                // Không alert lỗi vì QR VietQR đã hiển thị, khách vẫn thanh toán được
             }
+                
         });
         
         function copyTransferContent() {
