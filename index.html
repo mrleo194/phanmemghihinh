@@ -1302,12 +1302,12 @@
         }
         
         // Handle form submission
-        document.getElementById('customerForm').addEventListener('submit', async function(e) {
+        document.getElementById('customerForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const fullName = document.getElementById('fullName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const phone = document.getElementById('phone').value.trim();
+            var fullName = document.getElementById('fullName').value.trim();
+            var email = document.getElementById('email').value.trim();
+            var phone = document.getElementById('phone').value.trim();
             
             if (!fullName || !email || !phone) {
                 alert('Vui lòng điền đầy đủ thông tin!');
@@ -1315,13 +1315,9 @@
             }
             
             orderCode = generateOrderCode();
-            const packageInfo = PACKAGES[selectedPackage];
+            var packageInfo = PACKAGES[selectedPackage];
             
-            const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="animate-spin">⏳</span> Đang tạo liên kết thanh toán...';
-            
-            const params = new URLSearchParams({
+            var params = new URLSearchParams({
                 action: 'create_order',
                 orderCode: orderCode,
                 fullName: fullName,
@@ -1331,66 +1327,21 @@
                 amount: packageInfo.price
             });
             
-            // Timeout 20s → fallback
-            var responded = false;
-            var timeoutId = setTimeout(function() {
-                if (!responded) {
-                    responded = true;
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Tạo Mã QR Thanh Toán';
-                    showFallbackQR(packageInfo, orderCode, email);
-                }
-            }, 20000);
+            // Mở GAS URL trong tab mới → GAS tạo payOS link → redirect sang payOS
+            var gasUrl = SCRIPT_URL + '?' + params.toString();
+            window.open(gasUrl, '_blank');
             
-            // Lắng nghe postMessage từ iframe GAS
-            function onMessage(event) {
-                if (event.data && event.data.type === 'GAS_RESPONSE') {
-                    responded = true;
-                    clearTimeout(timeoutId);
-                    window.removeEventListener('message', onMessage);
-                    
-                    var data = event.data.data;
-                    console.log('GAS response:', data);
-                    
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Tạo Mã QR Thanh Toán';
-                    
-                    // Xóa iframe
-                    var f = document.getElementById('gasFrame');
-                    if (f) f.remove();
-                    
-                    if (data.success && data.checkoutUrl) {
-                        // REDIRECT SANG TRANG PAYOS
-                        showPaymentRedirect(data, packageInfo, orderCode, email);
-                    } else {
-                        console.log('payOS error:', data.error);
-                        showFallbackQR(packageInfo, orderCode, email);
-                    }
-                }
-            }
-            window.addEventListener('message', onMessage);
-            
-            // Tạo iframe gọi GAS
-            var oldFrame = document.getElementById('gasFrame');
-            if (oldFrame) oldFrame.remove();
-            var iframe = document.createElement('iframe');
-            iframe.id = 'gasFrame';
-            iframe.style.display = 'none';
-            iframe.src = SCRIPT_URL + '?' + params.toString();
-            document.body.appendChild(iframe);
-        });
-        
-        // Hiển thị link thanh toán payOS (redirect)
-        function showPaymentRedirect(data, packageInfo, orderCode, email) {
+            // Hiển thị thông tin chờ thanh toán
             document.getElementById('customerEmail').textContent = email;
             document.getElementById('paymentInfo').innerHTML = 
                 '<div class="space-y-4">'
                 + '<div class="text-center p-6">'
-                + '  <div class="mb-4"><span style="font-size:48px">✅</span></div>'
-                + '  <h4 class="text-white font-bold text-lg mb-2">Đơn hàng đã tạo thành công!</h4>'
-                + '  <p class="text-gray-400 mb-6">Bấm nút bên dưới để chuyển đến trang thanh toán an toàn của payOS</p>'
-                + '  <a href="' + data.checkoutUrl + '" target="_blank" class="btn-primary inline-flex" style="padding:16px 32px;font-size:17px;text-decoration:none;">'
-                + '    💳 Thanh Toán Ngay (' + formatMoney(packageInfo.price) + ')'
+                + '  <div class="mb-4"><span style="font-size:48px">🔄</span></div>'
+                + '  <h4 class="text-white font-bold text-lg mb-2">Trang thanh toán đã mở!</h4>'
+                + '  <p class="text-gray-400 mb-4">Vui lòng hoàn tất thanh toán trên tab mới vừa mở.</p>'
+                + '  <p class="text-gray-500 text-sm mb-6">Nếu tab không mở, bấm nút bên dưới:</p>'
+                + '  <a href="' + gasUrl + '" target="_blank" class="btn-primary inline-flex" style="padding:14px 28px;font-size:16px;text-decoration:none;">'
+                + '    💳 Mở trang thanh toán'
                 + '  </a>'
                 + '</div>'
                 + '<div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">'
@@ -1405,43 +1356,7 @@
                 + '</div>'
                 + '</div>';
             document.getElementById('qrSection').classList.remove('hidden');
-            
-            // Tự động mở trang payOS
-            window.open(data.checkoutUrl, '_blank');
-        }
-        
-        // Fallback QR VietQR
-        function showFallbackQR(packageInfo, orderCode, email) {
-            var transferContent = 'DH' + orderCode;
-            var vietQrUrl = 'https://img.vietqr.io/image/' + BANK_CONFIG.bankCode + '-' + BANK_CONFIG.accountNumber + '-compact2.jpg?amount=' + packageInfo.price + '&addInfo=' + encodeURIComponent(transferContent) + '&accountName=' + encodeURIComponent(BANK_CONFIG.accountName);
-            
-            document.getElementById('customerEmail').textContent = email;
-            document.getElementById('paymentInfo').innerHTML = 
-                '<div class="space-y-4">'
-                + '<div class="bg-white p-5 rounded-2xl">'
-                + '  <h4 class="font-bold text-gray-800 mb-3 text-center text-sm">Quét mã QR để thanh toán</h4>'
-                + '  <img src="' + vietQrUrl + '" alt="QR" class="w-full max-w-[280px] mx-auto">'
-                + '</div>'
-                + '<div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">'
-                + '  <div class="space-y-2 text-sm">'
-                + '    <div class="flex justify-between"><span class="text-gray-400">Ngân hàng:</span><span class="text-white font-semibold">BIDV</span></div>'
-                + '    <div class="flex justify-between"><span class="text-gray-400">STK:</span><span class="text-white font-mono">' + BANK_CONFIG.accountNumber + '</span></div>'
-                + '    <div class="flex justify-between"><span class="text-gray-400">Chủ TK:</span><span class="text-white">' + BANK_CONFIG.accountName + '</span></div>'
-                + '    <div class="flex justify-between"><span class="text-gray-400">Số tiền:</span><span class="text-lime-400 font-bold">' + formatMoney(packageInfo.price) + '</span></div>'
-                + '    <div class="flex justify-between items-center"><span class="text-gray-400">Nội dung:</span>'
-                + '      <div class="flex items-center gap-2">'
-                + '        <span class="text-white font-mono bg-gray-700 px-2 py-1 rounded">' + transferContent + '</span>'
-                + '        <button onclick="navigator.clipboard.writeText(\'' + transferContent + '\').then(function(){alert(\'Đã copy!\')})" class="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs">Copy</button>'
-                + '      </div>'
-                + '    </div>'
-                + '  </div>'
-                + '</div>'
-                + '<div class="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-xl">'
-                + '  <p class="text-yellow-400 text-sm">⚠️ Ghi <strong>ĐÚNG nội dung</strong> CK. Liên hệ Zalo 0912026236 nếu cần hỗ trợ.</p>'
-                + '</div>'
-                + '</div>';
-            document.getElementById('qrSection').classList.remove('hidden');
-        }
+        });
         
     </script>
 </body>
